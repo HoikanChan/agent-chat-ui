@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>流式接口测试</title>
+</head>
+<body>
+    <h1>流式接口测试</h1>
+    
+    <div>
+        <label for="query">查询内容:</label>
+        <input type="text" id="query" value="PTN830设备1/0/1端口产生ETH_LOS告警" style="width: 400px;">
+        <button onclick="testStream()">开始测试</button>
+        <button onclick="clearResults()">清空结果</button>
+    </div>
+
+    <div id="status" style="margin: 20px 0; font-weight: bold;"></div>
+    
+    <div id="results" style="border: 1px solid #ccc; padding: 10px; margin: 20px 0; height: 500px; overflow-y: auto; white-space: pre-wrap; font-family: monospace;"></div>
+
+    <script>
+        let eventSource = null;
+
+        function setStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        function appendResult(message) {
+            const results = document.getElementById('results');
+            results.textContent += message + '\n';
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('results').textContent = '';
+            setStatus('');
+        }
+
+        async function testStream() {
+            const query = document.getElementById('query').value;
+            
+            if (!query.trim()) {
+                alert('请输入查询内容');
+                return;
+            }
+
+            clearResults();
+            setStatus('连接中...');
+
+            try {
+                const response = await fetch('http://localhost:3001/freestyle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query: query })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                setStatus('正在接收流式数据...');
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    
+                    if (done) {
+                        setStatus('流式传输完成');
+                        break;
+                    }
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6);
+                            
+                            if (data === '[DONE]') {
+                                setStatus('数据传输完成');
+                                continue;
+                            }
+
+                            try {
+                                const parsed = JSON.parse(data);
+                                
+                                if (parsed.error) {
+                                    appendResult(`❌ 错误: ${parsed.error}`);
+                                } else {
+                                    const timestamp = new Date().toLocaleTimeString();
+                                    appendResult(`[${timestamp}] ${parsed.label}: ${JSON.stringify(parsed.content, null, 2)}`);
+                                }
+                            } catch (e) {
+                                if (data.trim()) {
+                                    appendResult(`原始数据: ${data}`);
+                                }
+                            }
+                        }
+                    }
+                }
+
+            } catch (error) {
+                setStatus(`错误: ${error.message}`);
+                appendResult(`❌ 连接错误: ${error.message}`);
+            }
+        }
+
+        // 页面加载时显示服务器状态
+        window.onload = async function() {
+            try {
+                const response = await fetch('http://localhost:3000/health');
+                if (response.ok) {
+                    const data = await response.json();
+                    setStatus(`✅ 服务器正常 (${data.timestamp})`);
+                } else {
+                    setStatus('❌ 服务器连接失败');
+                }
+            } catch (error) {
+                setStatus('❌ 无法连接到服务器 - 请确保服务器已启动');
+            }
+        };
+    </script>
+</body>
+</html>
