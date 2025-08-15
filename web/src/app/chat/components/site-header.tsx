@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import { StarFilledIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
-import Link from "next/link";
-import { useTranslations } from 'next-intl';
+import { useTranslations } from "~/lib/i18n-react";
 
 import { LanguageSwitcher } from "~/components/deer-flow/language-switcher";
 import { NumberTicker } from "~/components/magicui/number-ticker";
@@ -35,12 +34,12 @@ export function SiteHeader() {
             asChild
             className="group relative z-10"
           >
-            <Link href="https://github.com/bytedance/deer-flow" target="_blank">
+            <a href="https://github.com/bytedance/deer-flow" target="_blank" rel="noopener noreferrer">
               <GitHubLogoIcon className="size-4" />
               {t('starOnGitHub')}
               {env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY &&
                 env.GITHUB_OAUTH_TOKEN && <StarCounter />}
-            </Link>
+            </a>
           </Button>
         </div>
       </div>

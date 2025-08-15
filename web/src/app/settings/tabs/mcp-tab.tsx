@@ -3,7 +3,7 @@
 
 import { motion } from "framer-motion";
 import { Blocks, PencilRuler, Trash } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "~/lib/i18n-react";
 import { useCallback, useState } from "react";
 
 import { Tooltip } from "~/components/deer-flow/tooltip";

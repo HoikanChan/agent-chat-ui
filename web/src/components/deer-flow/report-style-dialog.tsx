@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
-import { useTranslations } from "next-intl";
+import { useTranslations } from "~/lib/i18n-react";
 import { useState } from "react";
 import { Check, FileText, Newspaper, Users, GraduationCap } from "lucide-react";
 

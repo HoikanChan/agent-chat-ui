@@ -35,7 +35,7 @@ import { slashCommand, suggestionItems } from "./slash-command";
 
 import "~/styles/prosemirror.css";
 
-const hljs = require("highlight.js");
+import hljs from "highlight.js";
 
 const extensions = [...defaultExtensions, slashCommand];
 

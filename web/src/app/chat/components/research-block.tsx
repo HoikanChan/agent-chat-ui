@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import { Check, Copy, Headphones, Pencil, Undo2, X, Download } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "~/lib/i18n-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { ScrollContainer } from "~/components/deer-flow/scroll-container";

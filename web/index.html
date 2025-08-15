@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🦌 DeerFlow</title>
+    <meta name="description" content="Deep Exploration and Efficient Research, an AI tool that combines language models with specialized tools for research tasks." />
+    <script>
+      // Define isSpace function globally to fix markdown-it issues
+      if (typeof window !== 'undefined' && typeof window.isSpace === 'undefined') {
+        window.isSpace = function(code) {
+          return code === 0x20 || code === 0x09 || code === 0x0A || code === 0x0B || code === 0x0C || code === 0x0D;
+        };
+      }
+    </script>
+  </head>
+  <body className="bg-app">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

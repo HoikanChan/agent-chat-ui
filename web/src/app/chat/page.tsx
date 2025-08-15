@@ -4,9 +4,8 @@
 "use client";
 
 import { GithubOutlined } from "@ant-design/icons";
-import dynamic from "next/dynamic";
-import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { lazy } from "react";
+import { useTranslations } from "~/lib/i18n-react";
 import { Suspense } from "react";
 
 import { Button } from "~/components/ui/button";
@@ -16,14 +15,7 @@ import { ThemeToggle } from "../../components/deer-flow/theme-toggle";
 import { Tooltip } from "../../components/deer-flow/tooltip";
 import { SettingsDialog } from "../settings/dialogs/settings-dialog";
 
-const Main = dynamic(() => import("./main"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-full w-full items-center justify-center">
-      Loading DeerFlow...
-    </div>
-  ),
-});
+const Main = lazy(() => import("./main"));
 
 export default function HomePage() {
   const t = useTranslations("chat.page");
@@ -35,12 +27,13 @@ export default function HomePage() {
         <div className="flex items-center">
           <Tooltip title={t("starOnGitHub")}>
             <Button variant="ghost" size="icon" asChild>
-              <Link
+              <a
                 href="https://github.com/bytedance/deer-flow"
                 target="_blank"
+                rel="noopener noreferrer"
               >
                 <GithubOutlined />
-              </Link>
+              </a>
             </Button>
           </Tooltip>
           <ThemeToggle />
@@ -49,7 +42,13 @@ export default function HomePage() {
           </Suspense>
         </div>
       </header>
-      <Main />
+      <Suspense fallback={
+        <div className="flex h-full w-full items-center justify-center">
+          Loading DeerFlow...
+        </div>
+      }>
+        <Main />
+      </Suspense>
     </div>
   );
 }

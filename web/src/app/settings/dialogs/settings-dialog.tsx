@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import { Settings } from "lucide-react";
-import { useTranslations } from 'next-intl';
+import { useTranslations } from "~/lib/i18n-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Tooltip } from "~/components/deer-flow/tooltip";

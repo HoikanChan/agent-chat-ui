@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import { BadgeInfo } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "~/lib/i18n-react";
 
 import { Markdown } from "~/components/deer-flow/markdown";
 

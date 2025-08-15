@@ -3,7 +3,7 @@
 
 "use client";
 
-import { usePathname } from "next/navigation";
+import { useLocation } from "react-router-dom";
 
 import { ThemeProvider } from "~/components/theme-provider";
 
@@ -12,8 +12,8 @@ export function ThemeProviderWrapper({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-  const isChatPage = pathname?.startsWith("/chat");
+  const location = useLocation();
+  const isChatPage = location.pathname?.startsWith("/chat");
 
   return (
     <ThemeProvider

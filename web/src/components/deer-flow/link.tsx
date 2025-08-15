@@ -3,7 +3,7 @@ import { useStore, useToolCalls } from "~/core/store";
 import { parseJSON } from "~/core/utils/json";
 import { Tooltip } from "./tooltip";
 import { WarningFilled } from "@ant-design/icons";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "~/lib/i18n-react";
 
 export const Link = ({
   href,

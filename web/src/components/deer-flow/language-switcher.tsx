@@ -3,8 +3,8 @@
 
 "use client";
 
-import { useLocale } from "next-intl";
-import { useRouter } from "next/navigation";
+import { useLocale, useSetLocale } from "~/lib/i18n-react";
+import { useNavigate } from "react-router-dom";
 import { useTransition } from "react";
 
 import { Button } from "~/components/ui/button";
@@ -28,7 +28,8 @@ const languages: Array<LanguageOption> = [
 
 export function LanguageSwitcher() {
   const locale = useLocale();
-  const router = useRouter();
+  const setLocale = useSetLocale();
+  const navigate = useNavigate();
   const [isPending, startTransition] = useTransition();
 
   const currentLanguage =
@@ -37,9 +38,8 @@ export function LanguageSwitcher() {
 
   const handleLanguageChange = (newLocale: string) => {
     startTransition(() => {
-      console.log(`updateing locale to ${newLocale}`)
-      // Set locale in cookie
-      document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000; SameSite=lax`;
+      console.log(`updating locale to ${newLocale}`);
+      setLocale(newLocale);
       // Reload the page to apply the new locale
       window.location.reload();
     });

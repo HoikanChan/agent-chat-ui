@@ -15,7 +15,7 @@ import {
 } from "novel";
 import { Markdown } from "tiptap-markdown";
 import { useDebouncedCallback } from "use-debounce";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "~/lib/i18n-react";
 
 import "~/styles/prosemirror.css";
 import { resourceSuggestion } from "./resource-suggestion";

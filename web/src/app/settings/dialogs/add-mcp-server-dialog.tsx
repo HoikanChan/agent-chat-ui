@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import { Loader2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "~/lib/i18n-react";
 import { useCallback, useRef, useState } from "react";
 
 import { Button } from "~/components/ui/button";
