@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const PORT = 3001;
+const PORT = 8000;
 
 // 中间件配置
 app.use(express.json());
@@ -234,6 +234,50 @@ async function streamResponse(res, label, contentGenerator, isStream = false) {
     })}\n\n`);
 }
 
+// 聊天流式接口
+app.post('/api/chat/stream', async (req, res) => {
+    const { messages } = req.body;
+    
+    console.log('收到聊天请求:', messages);
+
+    // 设置SSE响应头
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no' // 禁用Nginx缓冲
+    });
+
+    try {
+        // 模拟AI回复
+        const responses = [
+            "你好！我是DeerFlow AI助手。",
+            "关于埃菲尔铁塔的高度问题，让我来帮你分析一下。",
+            "埃菲尔铁塔高度约330米，而世界最高建筑迪拜塔高度约828米。",
+            "所以埃菲尔铁塔大约是世界最高建筑的0.4倍，或者说世界最高建筑约比埃菲尔铁塔高2.5倍。"
+        ];
+
+        for (let i = 0; i < responses.length; i++) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            res.write(`data: ${JSON.stringify({
+                content: responses[i],
+                role: "assistant",
+                done: i === responses.length - 1
+            })}\n\n`);
+        }
+
+        res.write('data: [DONE]\n\n');
+        res.end();
+
+    } catch (error) {
+        console.error('聊天流式响应错误:', error);
+        res.write(`data: ${JSON.stringify({
+            error: error.message
+        })}\n\n`);
+        res.end();
+    }
+});
+
 // 主接口
 app.post('/freestyle', async (req, res) => {
     const { query } = req.body;
@@ -249,37 +293,37 @@ app.post('/freestyle', async (req, res) => {
     });
 
     try {
-        // 1. Planning Agent 相关知识（非流式）
+        // 1. 知识查询机器人 相关知识（非流式）
         await new Promise(resolve => setTimeout(resolve, 500));
         await streamResponse(res, 'planning_agent_knowledge', generateMockContent.planning_agent_knowledge, false);
 
-        // 2. Planning Agent 诊断大作文（非流式，但标注后续会改为流式）
+        // 2. 知识查询机器人 诊断大作文（非流式，但标注后续会改为流式）
         await new Promise(resolve => setTimeout(resolve, 800));
         await streamResponse(res, 'planning_agent_troubleshooting_text', generateMockContent.planning_agent_troubleshooting_text, false);
 
-        // 3. API选择模型思考过程（流式）
+        // 3. 网络状态感知机器人思考过程（流式）
         await new Promise(resolve => setTimeout(resolve, 500));
         await streamResponse(res, 'troubleshooting_agent_model_thinking', generateMockContent.troubleshooting_agent_model_thinking, true);
 
-        // 4. API选择模型最终结果（流式）
+        // 4. 网络状态感知机器人最终结果（流式）
         await new Promise(resolve => setTimeout(resolve, 500));
         await streamResponse(res, 'troubleshooting_agent_refined_apis', generateMockContent.troubleshooting_agent_refined_apis, true);
 
-        // 5. NL2Code思考结果（流式）
+        // 5. 网络状态感知机器人 思考结果（流式）
         await new Promise(resolve => setTimeout(resolve, 500));
         await streamResponse(res, 'troubleshooting_agent_code_thinking', generateMockContent.troubleshooting_agent_code_thinking, true);
 
-        // 6. 执行API结果（非流式）
+        // 6. 网络状态感知机器人 执行API结果（非流式）
         await new Promise(resolve => setTimeout(resolve, 1000));
         await streamResponse(res, 'troubleshooting_agent_mock_status_done', generateMockContent.troubleshooting_agent_mock_status_done, false);
 
-        // 7. 根因分析结果（非流式，但标注后续会改为流式）
+        // 7. 根因分析机器人（非流式，但标注后续会改为流式）
         await new Promise(resolve => setTimeout(resolve, 800));
         await streamResponse(res, 'summarizing_agent_result', generateMockContent.summarizing_agent_result, false);
 
-        // 8. 根因判断（非流式）
-        await new Promise(resolve => setTimeout(resolve, 500));
-        await streamResponse(res, 'find_root_cause', generateMockContent.find_root_cause, false);
+        // // 8. 根因判断（非流式）
+        // await new Promise(resolve => setTimeout(resolve, 500));
+        // await streamResponse(res, 'find_root_cause', generateMockContent.find_root_cause, false);
 
         // 9. 最终总结（非流式）
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -296,6 +340,20 @@ app.post('/freestyle', async (req, res) => {
         })}\n\n`);
         res.end();
     }
+});
+
+// 配置接口
+app.get('/api/config', (req, res) => {
+    res.json({ 
+        models: {
+            chat: ["gpt-4"],
+            reasoning: ["o1-preview"]
+        },
+        features: {
+            deepThinking: true,
+            investigation: true
+        }
+    });
 });
 
 // 健康检查接口

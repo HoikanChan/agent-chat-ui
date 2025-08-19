@@ -12,6 +12,7 @@ function App() {
       <Routes>
         <Route path="/" element={<ChatPage />} />
         <Route path="/chat" element={<ChatPage />} />
+        <Route path="/bot" element={<ChatPage />} />
       </Routes>
       <Toaster />
     </ThemeProviderWrapper>

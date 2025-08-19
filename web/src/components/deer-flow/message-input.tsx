@@ -21,7 +21,6 @@ import "~/styles/prosemirror.css";
 import { resourceSuggestion } from "./resource-suggestion";
 import React, { forwardRef, useEffect, useMemo, useRef } from "react";
 import type { Resource } from "~/core/messages";
-import { useConfig } from "~/core/api/hooks";
 import { LoadingOutlined } from "@ant-design/icons";
 import type { DeerFlowConfig } from "~/core/config";
 
@@ -34,8 +33,6 @@ export interface MessageInputRef {
 export interface MessageInputProps {
   className?: string;
   placeholder?: string;
-  loading?: boolean;
-  config?: DeerFlowConfig | null;
   onChange?: (markdown: string) => void;
   onEnter?: (message: string, resources: Array<Resource>) => void;
 }
@@ -80,7 +77,7 @@ function formatItem(item: JSONContent): {
 
 const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(
   (
-    { className, loading, config, onChange, onEnter }: MessageInputProps,
+    { className, onChange, onEnter }: MessageInputProps,
     ref,
   ) => {
     const t = useTranslations("messageInput");
@@ -138,7 +135,7 @@ const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(
         }),
         Placeholder.configure({
           showOnlyCurrent: false,
-          placeholder: config?.rag.provider ? t("placeholderWithRag") : t("placeholder"),
+          placeholder: t("placeholder"),
           emptyEditorClass: "placeholder",
         }),
         Extension.create({
@@ -158,26 +155,9 @@ const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(
           },
         }),
       ];
-      if (config?.rag.provider) {
-        extensions.push(
-          Mention.configure({
-            HTMLAttributes: {
-              class: "mention",
-            },
-            suggestion: resourceSuggestion,
-          }) as Extension,
-        );
-      }
       return extensions;
-    }, [config]);
+    }, []);
 
-    if (loading) {
-      return (
-        <div className={className}>
-          <LoadingOutlined />
-        </div>
-      );
-    }
 
     return (
       <div className={className}>

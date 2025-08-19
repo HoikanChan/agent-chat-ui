@@ -16,7 +16,6 @@ import { Tooltip } from "~/components/deer-flow/tooltip";
 import { BorderBeam } from "~/components/magicui/border-beam";
 import { Button } from "~/components/ui/button";
 import { enhancePrompt } from "~/core/api";
-import { useConfig } from "~/core/api/hooks";
 import type { Option, Resource } from "~/core/messages";
 import {
   setEnableDeepThinking,
@@ -55,7 +54,6 @@ export function InputBox({
   const backgroundInvestigation = useSettingsStore(
     (state) => state.general.enableBackgroundInvestigation,
   );
-  const { config, loading } = useConfig();
   const reportStyle = useSettingsStore((state) => state.general.reportStyle);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<MessageInputRef>(null);
@@ -206,15 +204,14 @@ export function InputBox({
             isEnhanceAnimating && "transition-all duration-500",
           )}
           ref={inputRef}
-          loading={loading}
-          config={config}
+   
           onEnter={handleSendMessage}
           onChange={setCurrentPrompt}
         />
       </div>
       <div className="flex items-center px-4 py-2">
         <div className="flex grow gap-2">
-          {config?.models.reasoning?.[0] && (
+          {
             <Tooltip
               className="max-w-60"
               title={
@@ -226,7 +223,7 @@ export function InputBox({
                   </h3>
                   <p>
                     {t("deepThinkingTooltip.description", {
-                      model: config.models.reasoning?.[0] ?? "",
+                      model: "",
                     })}
                   </p>
                 </div>
@@ -245,7 +242,7 @@ export function InputBox({
                 <Lightbulb /> {t("deepThinking")}
               </Button>
             </Tooltip>
-          )}
+          }
 
           <Tooltip
             className="max-w-60"

@@ -1,3 +1,6 @@
+# read code
+use serena mcp
+
 ## 接口 url /freestyle
 
 ## 接口入参 
@@ -57,3 +60,24 @@ content 具体内容自己 mock
 界面位置:左侧 
 最终总结 如果轮次达到 5 轮或发现根因 则输出最终结
 { "label":"final_summarizerr", "content":"xxx", "return_type":"normal" }
+
+# Background
+1. web是个开源项目做deep-research的项目
+2. server是我做的mock server，为了跟真的server对接
+
+# Task
+1. 以server mock接口为基准，改造web，把他变成一个Chat bot，它背后有多种bot
+- 知识查询机器人
+- 网络状态感知机器人
+- 根因分析机器人
+2. 根据接口，返回不同bot的聊天结果
+3. 同时chat-block右侧出现research-block，展示机器人查出来的数据
+- 界面位置:右侧知识卡片 
+`{ "label":"planning_agent_knowledge", "content":"xxx", "return_type":"normal" }`
+- 界面位置:右侧分析过程 
+注：之后会转为流式接口 
+{ "label":"summarizing_agent_result", "content":"xxx", "return_type":"normal" }
+- 界面位置:右侧分析过程 
+注：之后会转为流式接口 
+{ "label":"summarizing_agent_result", "content":"xxx", "return_type":"normal" }
+4. 同时删除web中开源项目用不上的特性代码

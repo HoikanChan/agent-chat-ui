@@ -14,9 +14,14 @@ import { Tooltip } from "~/components/deer-flow/tooltip";
 import { SettingsDialog } from "~/app/settings/dialogs/settings-dialog";
 
 const Main = lazy(() => import("~/app/chat/main"));
+const BotMain = lazy(() => import("~/app/chat/components/bot-main"));
 
 export default function ChatPage() {
   const t = useTranslations("chat.page");
+  
+  // Check URL params to determine which mode to use
+  const searchParams = new URLSearchParams(window.location.search);
+  const isBotMode = searchParams.has("bot") || window.location.pathname.includes("bot");
 
   return (
     <div className="flex h-screen w-screen justify-center overscroll-none">
@@ -45,7 +50,7 @@ export default function ChatPage() {
           Loading DeerFlow...
         </div>
       }>
-        <Main />
+        {isBotMode ? <BotMain /> : <Main />}
       </Suspense>
     </div>
   );

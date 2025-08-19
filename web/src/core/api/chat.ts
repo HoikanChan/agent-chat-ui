@@ -45,19 +45,32 @@ export async function* chatStream(
     return yield* chatReplayStream(userMessage, params, options);
   
   try{
-    const stream = fetchStream(resolveServiceURL("chat/stream"), {
+    // Use the new chatbot API endpoint
+    const stream = fetchStream("http://localhost:3001/freestyle", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        messages: [{ role: "user", content: userMessage }],
-        ...params,
+        query: userMessage,
       }),
       signal: options.abortSignal,
     });
     
     for await (const event of stream) {
-      yield {
-        type: event.event,
-        data: JSON.parse(event.data),
-      } as ChatEvent;
+      if (event.data === "[DONE]") {
+        break;
+      }
+      
+      try {
+        const data = JSON.parse(event.data);
+        yield {
+          type: "bot_response",
+          data,
+        } as ChatEvent;
+      } catch (e) {
+        console.error("Failed to parse event data:", e);
+      }
     }
   }catch(e){
     console.error(e);

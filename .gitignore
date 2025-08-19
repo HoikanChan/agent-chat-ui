@@ -21,6 +21,7 @@ venv/
 conf.yaml
 
 .idea/
+.serena
 .langgraph_api/
 
 # coverage report

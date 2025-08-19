@@ -76,9 +76,19 @@ export interface InterruptEvent
     }
   > {}
 
+export interface BotResponseEvent {
+  type: "bot_response";
+  data: {
+    label: string;
+    content: any;
+    return_type: "normal" | "stream";
+  };
+}
+
 export type ChatEvent =
   | MessageChunkEvent
   | ToolCallsEvent
   | ToolCallChunksEvent
   | ToolCallResultEvent
-  | InterruptEvent;
+  | InterruptEvent
+  | BotResponseEvent;
