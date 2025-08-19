@@ -12,6 +12,7 @@ export interface ToolCall {
 export interface Reasoning{
   content: string;
   label: string;
+  isStreaming?: boolean;
 }
 
 export interface Message {
@@ -230,22 +231,49 @@ export async function sendMessage(content: string, options: { abortSignal?: Abor
                 if (!currentMessage.reasoningContent) currentMessage.reasoningContent = [];
                 if (!currentMessage.reasoningContentChunks) currentMessage.reasoningContentChunks = [];
                 
-                // 过滤掉流式接口的begin和end事件
-                if (contentStr.includes('[begin]') || contentStr.includes('[end]') || 
-                    contentStr.trim() === 'begin' || contentStr.trim() === 'end') {
-                  return;
-                }
+                // 检测流式传输结束事件
+                const isEndEvent = contentStr.includes('complete') || contentStr.trim() === 'complete';
+                const isBeginEvent = contentStr.includes('[begin]') || contentStr.trim() === 'begin';
                 
                 // 查找是否已存在相同label的reasoning
                 const existingReasoning = currentMessage.reasoningContent.find(r => r.label === label);
+                
+                if (isEndEvent) {
+                  // 如果是结束事件，将对应reasoning的streaming状态设置为false
+                  if (existingReasoning) {
+                    existingReasoning.isStreaming = false;
+                  }
+                  return; // 不添加end事件到内容中
+                }
+                
+                if (isBeginEvent) {
+                  // 如果是开始事件，确保reasoning存在并设置为streaming
+                  if (existingReasoning) {
+                    existingReasoning.isStreaming = true;
+                  } else {
+                    const reasoning: Reasoning = {
+                      label: label,
+                      content: '',
+                      isStreaming: true,
+                    };
+                    currentMessage.reasoningContent.push(reasoning);
+                  }
+                  return; // 不添加begin事件到内容中
+                }
+                
+                // 添加正常内容
                 if (existingReasoning) {
                   // 合并到现有的reasoning对象中
                   existingReasoning.content += contentStr + '\n';
+                  if (existingReasoning.isStreaming === undefined) {
+                    existingReasoning.isStreaming = true; // 设置为正在流式传输
+                  }
                 } else {
                   // 创建新的reasoning对象
                   const reasoning: Reasoning = {
                     label: label,
                     content: contentStr + '\n',
+                    isStreaming: true, // 新创建的reasoning设置为正在流式传输
                   };
                   currentMessage.reasoningContent.push(reasoning);
                 }
@@ -294,11 +322,8 @@ export async function sendMessage(content: string, options: { abortSignal?: Abor
                 // 流式内容处理
                 default:
                   if (return_type === 'stream') {
-                    // 流式内容也过滤begin/end事件
-                    if (!(contentStr.includes('[begin]') || contentStr.includes('[end]') || 
-                          contentStr.trim() === 'begin' || contentStr.trim() === 'end')) {
-                      addToReasoning();
-                    }
+                    // 流式内容使用addToReasoning处理，它会自动处理begin/end事件
+                    addToReasoning();
                   } else {
                     // 其他未知类型默认添加到内容
                     addToContent();

@@ -1,210 +1,344 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
-import { useState, useRef, useCallback } from "react";
+import React, { useRef, useCallback } from "react";
 import { cn } from "~/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Markdown } from "~/components/deer-flow/markdown";
 import { ScrollContainer } from "~/components/deer-flow/scroll-container";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { Badge } from "~/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible";
+import { ChevronRight, Brain, Search, BarChart3, CheckCircle, ChevronDown, Lightbulb, Settings, Target, Code } from "lucide-react";
+import { LoadingAnimation } from "~/components/deer-flow/loading-animation";
+import { RollingText } from "~/components/deer-flow/rolling-text";
+import { motion } from "framer-motion";
+import { InputBox } from "./input-box";
+import { ConversationStarter } from "./conversation-starter";
+import { useStore, sendMessage, type Message, type Reasoning } from '~/core/store/agent-store';
+import { nanoid } from 'nanoid';
 
-interface BotMessage {
-  role: "user" | "assistant";
-  content: string;
-  timestamp: Date;
-}
+// Import ThoughtBlock from message-list-view
+function ThoughtBlock({
+  className,
+  reasoning,
+  hasMainContent,
+}: {
+  className?: string;
+  reasoning: Reasoning;
+  hasMainContent?: boolean;
+}) {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [hasAutoCollapsed, setHasAutoCollapsed] = React.useState(false);
+  const reasoningConfig = getReasoningConfig(reasoning.label);
 
-interface BotData {
-  label: string;
-  content: any;
-  return_type: "normal" | "stream";
+  React.useEffect(() => {
+    if (hasMainContent && !hasAutoCollapsed) {
+      setIsOpen(false);
+      setHasAutoCollapsed(true);
+    }
+  }, [hasMainContent, hasAutoCollapsed]);
+
+  if (!reasoning.content || reasoning.content.trim() === "") {
+    return null;
+  }
+
+  return (
+    <div className={cn("mb-3 w-full", className)}>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger asChild>
+          <Button
+            variant="ghost"
+            className={cn(
+              "h-auto w-full justify-start rounded-xl border px-6 py-4 text-left transition-all duration-200",
+              "hover:bg-accent hover:text-accent-foreground",
+              reasoning.isStreaming
+                ? "border-primary/20 bg-primary/5 shadow-sm"
+                : "border-border bg-card",
+            )}
+          >
+            <div className="flex w-full items-center gap-3">
+              {React.createElement(reasoningConfig.icon, {
+                size: 18,
+                className: cn(
+                  "shrink-0 transition-colors duration-200",
+                  reasoning.isStreaming ? reasoningConfig.color : "text-muted-foreground",
+                )
+              })}
+              <span
+                className={cn(
+                  "leading-none font-semibold transition-colors duration-200",
+                  reasoning.isStreaming ? reasoningConfig.color : "text-foreground",
+                )}
+              >
+                {reasoningConfig.text}
+              </span>
+              <div className="flex-grow" />
+              {isOpen ? (
+                <ChevronDown
+                  size={16}
+                  className="text-muted-foreground transition-transform duration-200"
+                />
+              ) : (
+                <ChevronRight
+                  size={16}
+                  className="text-muted-foreground transition-transform duration-200"
+                />
+              )}
+            </div>
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-up-2 data-[state=open]:slide-down-2 mt-3">
+          <Card
+            className={cn(
+              "transition-all duration-200",
+              reasoning.isStreaming ? "border-primary/20 bg-primary/5" : "border-border",
+            )}
+          >
+            <CardContent>
+              <div className="flex h-40 w-full overflow-y-auto">
+                <ScrollContainer
+                  className={cn(
+                    "flex h-full w-full flex-col overflow-hidden",
+                    className,
+                  )}
+                  scrollShadow={false}
+                  autoScrollToBottom
+                >
+                  <Markdown
+                    className={cn(
+                      "prose dark:prose-invert max-w-none transition-colors duration-200",
+                      reasoning.isStreaming ? "prose-primary" : "opacity-80",
+                    )}
+                    animated={reasoning.isStreaming}
+                  >
+                    {reasoning.content}
+                  </Markdown>
+                </ScrollContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
+  );
 }
 
 interface BotChatBlockProps {
   className?: string;
-  onBotData?: (data: BotData[]) => void;
 }
 
-export function BotChatBlock({ className, onBotData }: BotChatBlockProps) {
-  const [messages, setMessages] = useState<BotMessage[]>([]);
-  const [botData, setBotData] = useState<BotData[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [input, setInput] = useState("");
+// Agent configuration with icons and colors
+const getAgentConfig = (agentType?: string) => {
+  switch (agentType) {
+    case 'planning':
+      return {
+        icon: Search,
+        name: "规划助手",
+        color: "text-blue-500",
+        bgColor: "bg-blue-50 dark:bg-blue-950"
+      };
+    case 'troubleshooting':
+      return {
+        icon: BarChart3,
+        name: "问题排查助手",
+        color: "text-green-500",
+        bgColor: "bg-green-50 dark:bg-green-950"
+      };
+    case 'summarizing':
+      return {
+        icon: Brain,
+        name: "总结助手",
+        color: "text-purple-500",
+        bgColor: "bg-purple-50 dark:bg-purple-950"
+      };
+    default:
+      return {
+        icon: CheckCircle,
+        name: "AI助手",
+        color: "text-orange-500",
+        bgColor: "bg-orange-50 dark:bg-orange-950"
+      };
+  }
+};
+
+// Reasoning configuration with user-friendly icons and text
+const getReasoningConfig = (label: string) => {
+  switch (label) {
+    case 'troubleshooting_agent_model_thinking':
+      return {
+        icon: Settings,
+        text: "分析问题",
+        color: "text-blue-500"
+      };
+    case 'troubleshooting_agent_refined_apis':
+      return {
+        icon: Target,
+        text: "API筛选",
+        color: "text-green-500"
+      };
+    case 'troubleshooting_agent_code_thinking':
+      return {
+        icon: Code,
+        text: "代码分析",
+        color: "text-purple-500"
+      };
+    default:
+      return {
+        icon: Lightbulb,
+        text: "深度思考",
+        color: "text-orange-500"
+      };
+  }
+};
+
+// Message List Item component
+function MessageListItem({ message }: { message: Message }) {
+  const agentConfig = getAgentConfig(message.agentType);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      style={{ transition: "all 0.2s ease-out" }}
+      transition={{
+        duration: 0.2,
+        ease: "easeOut",
+      }}
+    >
+      {message.role === "user" ? (
+        <div className="flex justify-end">
+          <div className="group flex w-fit max-w-[85%] flex-col rounded-2xl px-4 py-3 shadow bg-brand rounded-ee-none text-primary-foreground">
+            <Markdown>{message.content || ""}</Markdown>
+          </div>
+        </div>
+      ) : (
+        <div className="flex justify-start">
+          <div className="w-full">
+            {/* Main content */}
+
+            <Card className={cn(
+              "mb-3",
+            )}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "p-2 rounded-lg"
+                  )}>
+                    {React.createElement(agentConfig.icon, { size: 20 })}
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-semibold">
+                      {agentConfig.name}
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {message.createdAt.toLocaleTimeString()}
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {/* Reasoning content */}
+                {message.reasoningContent && message.reasoningContent.map((reasoning, index) => (
+                  <ThoughtBlock
+                    key={index}
+                    reasoning={reasoning}
+                    hasMainContent={Boolean(message.content && message.content.trim() !== "")}
+                  />
+                ))}
+
+                <Markdown>{message.content}</Markdown>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+export function BotChatBlock({ className }: BotChatBlockProps) {
+  const { messageIds, messages, isResponding, appendMessage, setResponding } = useStore();
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const handleSendMessage = useCallback(async () => {
-    if (!input.trim() || isLoading) return;
+  // Convert agent store messages to array format for display
+  const messageList = messageIds.map(id => messages.get(id)!).filter(Boolean);
+  const messageCount = messageList.length;
 
-    const userMessage: BotMessage = {
-      role: "user",
-      content: input.trim(),
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInput("");
-    setIsLoading(true);
-    setBotData([]);
+  const handleSendMessage = useCallback(async (content: string) => {
+    if (!content.trim() || isResponding) return;
 
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
 
     try {
-      const response = await fetch("http://localhost:3001/freestyle", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          query: userMessage.content,
-        }),
-        signal: abortController.signal,
-      });
-
-      if (!response.body) {
-        throw new Error("No response body");
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let accumulatedContent = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            
-            if (data === '[DONE]') {
-              // Add final assistant message if there's accumulated content
-              if (accumulatedContent.trim()) {
-                const assistantMessage: BotMessage = {
-                  role: "assistant",
-                  content: accumulatedContent.trim(),
-                  timestamp: new Date(),
-                };
-                setMessages(prev => [...prev, assistantMessage]);
-              }
-              break;
-            }
-
-            try {
-              const parsed = JSON.parse(data);
-              setBotData(prev => {
-                const newData = [...prev, parsed];
-                onBotData?.(newData);
-                return newData;
-              });
-              
-              // For chat responses, accumulate content
-              if (parsed.content && typeof parsed.content === 'string') {
-                accumulatedContent += parsed.content + "\n\n";
-              }
-            } catch (e) {
-              console.error("Failed to parse bot data:", e);
-            }
-          }
-        }
-      }
+      await sendMessage(content, { abortSignal: abortController.signal });
     } catch (error) {
-      if (error.name !== 'AbortError') {
+      if (error instanceof Error && error.name !== 'AbortError') {
         console.error("Chat error:", error);
-        setMessages(prev => [...prev, {
+        // Add error message
+        const errorMessage: Message = {
+          id: nanoid(),
+          threadId: nanoid(),
           role: "assistant",
           content: "抱歉，发生了错误，请稍后重试。",
-          timestamp: new Date(),
-        }]);
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        appendMessage(errorMessage);
       }
     } finally {
-      setIsLoading(false);
       abortControllerRef.current = null;
     }
-  }, [input, isLoading]);
+  }, [isResponding, appendMessage]);
 
   const handleCancel = useCallback(() => {
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
-    setIsLoading(false);
-  }, []);
+    setResponding(false);
+  }, [setResponding]);
 
   return (
     <div className={cn("flex h-full flex-col", className)}>
-      {/* Chat Messages Area */}
-      <div className="flex-1 min-h-0">
-        <ScrollContainer className="h-full px-4">
-          <div className="space-y-4 py-4">
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "flex w-full",
-                  message.role === "user" ? "justify-end" : "justify-start"
-                )}
-              >
-                <Card
-                  className={cn(
-                    "max-w-[80%] break-words",
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
-                  )}
-                >
-                  <CardContent className="p-3">
-                    <Markdown content={message.content} />
-                  </CardContent>
-                </Card>
-              </div>
+      {/* Chat Messages Area using MessageListView pattern */}
+      <div className="flex-1 min-h-0 w-full">
+        <ScrollContainer
+          className={cn("flex flex-grow h-full w-full flex-col overflow-hidden")}
+          autoScrollToBottom>
+          <div className="space-y-6 py-4">
+            {messageList.map((message) => (
+              <MessageListItem
+                key={message.id}
+                message={message}
+              />
             ))}
-            {isLoading && (
-              <div className="flex justify-start">
-                <Card className="bg-muted">
-                  <CardContent className="p-3">
-                    <div className="flex items-center space-x-2">
-                      <div className="animate-bounce">🤖</div>
-                      <span>AI助手正在思考中...</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+
+            {isResponding && (
+              <motion.div
+                className="flex justify-start"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <LoadingAnimation size="sm" />
+              </motion.div>
             )}
           </div>
         </ScrollContainer>
       </div>
 
       {/* Input Area */}
-      <div className="flex-shrink-0 p-4 border-t">
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSendMessage();
-              }
-            }}
-            placeholder="请输入您的问题..."
-            className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            disabled={isLoading}
+      <div className="relative flex h-42 shrink-0 pb-4">
+        {!isResponding && messageCount === 0 && (
+          <ConversationStarter
+            className="absolute top-[-218px] left-0"
           />
-          {isLoading ? (
-            <Button onClick={handleCancel} variant="outline">
-              取消
-            </Button>
-          ) : (
-            <Button onClick={handleSendMessage} disabled={!input.trim()}>
-              发送
-            </Button>
-          )}
-        </div>
+        )}
+        <InputBox
+          className="h-full w-full"
+          responding={isResponding}
+          onSend={handleSendMessage}
+          onCancel={handleCancel}
+        />
       </div>
     </div>
   );

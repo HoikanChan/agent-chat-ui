@@ -13,7 +13,6 @@ import { ThemeToggle } from "~/components/deer-flow/theme-toggle";
 import { Tooltip } from "~/components/deer-flow/tooltip";
 import { SettingsDialog } from "~/app/settings/dialogs/settings-dialog";
 
-const Main = lazy(() => import("~/app/chat/main"));
 const BotMain = lazy(() => import("~/app/chat/components/bot-main"));
 
 export default function ChatPage() {
@@ -27,30 +26,13 @@ export default function ChatPage() {
     <div className="flex h-screen w-screen justify-center overscroll-none">
       <header className="fixed top-0 left-0 flex h-12 w-full items-center justify-between px-4">
         <Logo />
-        <div className="flex items-center">
-          <Tooltip title={t("starOnGitHub")}>
-            <Button variant="ghost" size="icon" asChild>
-              <a
-                href="https://github.com/bytedance/deer-flow"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <GithubOutlined />
-              </a>
-            </Button>
-          </Tooltip>
-          <ThemeToggle />
-          <Suspense>
-            <SettingsDialog />
-          </Suspense>
-        </div>
       </header>
       <Suspense fallback={
         <div className="flex h-full w-full items-center justify-center">
           Loading DeerFlow...
         </div>
       }>
-        {isBotMode ? <BotMain /> : <Main />}
+        <BotMain />
       </Suspense>
     </div>
   );
