@@ -256,8 +256,8 @@ function ToolCallBlock({
           </span>
           <div className="flex-grow" />
           <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">
-            {toolCall.content.length > 50 
-              ? `${toolCall.content.slice(0, 50)}...` 
+            {toolCall.content.length > 20 
+              ? `${toolCall.content.slice(0, 20)}...` 
               : toolCall.content}
           </div>
           <ChevronRight
