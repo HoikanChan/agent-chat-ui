@@ -210,7 +210,7 @@ function MessageListItem({ message }: { message: Message }) {
       }}
     >
       {message.role === "user" ? (
-        <div className="flex justify-end">
+        <div className="flex justify-end mt-10">
           <div className="group flex w-fit max-w-[85%] flex-col rounded-2xl px-4 py-3 shadow bg-brand rounded-ee-none text-primary-foreground">
             <Markdown>{message.content || ""}</Markdown>
           </div>
@@ -224,20 +224,16 @@ function MessageListItem({ message }: { message: Message }) {
               "mb-3",
             )}>
               <CardHeader className="pb-3">
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "p-2 rounded-lg"
-                  )}>
-                    {React.createElement(agentConfig.icon, { size: 20 })}
-                  </div>
-                  <div>
-                    <CardTitle className="text-base font-semibold">
+                <div className="flex items-center justify-between group">
+                  <div className="flex items-center gap-3">
+                    {React.createElement(agentConfig.icon, { size: 20, title: agentConfig.name })}
+                    <CardTitle className="text-base font-semibold" title={agentConfig.name}>
                       {agentConfig.name}
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {message.createdAt.toLocaleTimeString()}
-                    </p>
                   </div>
+                  <p className="text-sm text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                    {message.createdAt.toLocaleTimeString()}
+                  </p>
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
