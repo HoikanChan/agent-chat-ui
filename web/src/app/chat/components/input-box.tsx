@@ -16,6 +16,7 @@ import type { Option, Resource } from "~/core/messages";
 import {
   useSettingsStore,
 } from "~/core/store";
+import { useUIStore } from "~/core/store/ui-store";
 import { cn } from "~/lib/utils";
 
 export function InputBox({
@@ -35,7 +36,6 @@ export function InputBox({
     options?: {
       interruptFeedback?: string;
       resources?: Array<Resource>;
-      isReplayMode?: boolean;
     },
   ) => void;
   onCancel?: () => void;
@@ -45,6 +45,7 @@ export function InputBox({
   const tCommon = useTranslations("common");
 
   const reportStyle = useSettingsStore((state) => state.general.reportStyle);
+  const { isReplayMode, setReplayMode } = useUIStore();
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<MessageInputRef>(null);
   const feedbackRef = useRef<HTMLDivElement>(null);
@@ -53,9 +54,6 @@ export function InputBox({
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isEnhanceAnimating, setIsEnhanceAnimating] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState("");
-  
-  // Replay mode state
-  const [isReplayMode, setIsReplayMode] = useState(false);
 
   const handleSendMessage = useCallback(
     (message: string, resources: Array<Resource>) => {
@@ -69,7 +67,6 @@ export function InputBox({
           onSend(message, {
             interruptFeedback: feedback?.option.value,
             resources,
-            isReplayMode,
           });
           onRemoveFeedback?.();
           // Clear enhancement animation after sending
@@ -77,7 +74,7 @@ export function InputBox({
         }
       }
     },
-    [responding, onCancel, onSend, feedback, onRemoveFeedback, isReplayMode],
+    [responding, onCancel, onSend, feedback, onRemoveFeedback],
   );
 
   const handleEnhancePrompt = useCallback(async () => {
@@ -215,7 +212,7 @@ export function InputBox({
                   ? "bg-foreground text-background hover:bg-foreground/90" 
                   : "text-muted-foreground hover:text-foreground hover:bg-transparent"
               )}
-              onClick={() => setIsReplayMode(!isReplayMode)}
+              onClick={() => setReplayMode(!isReplayMode)}
             >
               <Play className="h-3.5 w-3.5" />
             </Button>
