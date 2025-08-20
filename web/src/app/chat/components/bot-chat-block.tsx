@@ -107,7 +107,7 @@ function ThoughtBlock({
                 >
                   <Markdown
                     className={cn(
-                      "text-sm prose dark:prose-invert max-w-none transition-colors duration-200",
+                      "whitespace-pre-wrap break-words text-sm prose dark:prose-invert max-w-none transition-colors duration-200",
                       reasoning.isStreaming ? "prose-primary" : "opacity-80",
                     )}
                     animated={reasoning.isStreaming}
