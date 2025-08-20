@@ -4,6 +4,7 @@
 import { nanoid } from "nanoid";
 import { create } from "zustand";
 import { env } from "~/env";
+import { useUIStore } from "./ui-store";
 
 export interface ToolCall {
   content: string;
@@ -38,6 +39,29 @@ export interface Message {
   finishReason?: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+// Map data labels to research tabs
+function getResearchTabType(label: string): "knowledge" | "api" | "analysis" | null {
+  switch (label) {
+    case "planning_agent_knowledge":
+      return "knowledge";
+    case "summarizing_agent_result": 
+      return "analysis";
+    case "troubleshooting_agent_mock_status_done":
+      return "api";
+    default:
+      return null;
+  }
+}
+
+// Update activeTab when new tool calls arrive
+function updateActiveTabForNewToolCall(toolCall: ToolCall) {
+  const tabType = getResearchTabType(toolCall.label);
+  if (tabType) {
+    const uiStore = useUIStore.getState();
+    uiStore.setActiveTab(tabType);
+  }
 }
 
 export const useStore = create<{
@@ -306,6 +330,8 @@ export async function sendMessage(content: string, options: { abortSignal?: Abor
                   content: contentStr,
                 };
                 currentMessage.toolCalls = [...(currentMessage.toolCalls || []), toolCall];
+                // Update activeTab when new tool call is added
+                updateActiveTabForNewToolCall(toolCall);
               };
 
               // 根据label类型处理数据

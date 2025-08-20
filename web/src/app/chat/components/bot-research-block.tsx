@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { cn } from "~/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
@@ -13,9 +13,10 @@ import { Markdown } from "~/components/deer-flow/markdown";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible";
 import { ChevronRight, BookOpen, Activity, CheckCircle, FileText, Copy, X, Check } from "lucide-react";
 import { motion } from "framer-motion";
-import React from "react";
+import React, { useState } from "react";
 
 import type { Message } from '~/core/store/agent-store';
+import { useUIStore } from '~/core/store/ui-store';
 
 interface BotResearchBlockProps {
   className?: string;
@@ -296,9 +297,12 @@ function renderContent(content: any, returnType: string) {
   return <div className="text-sm text-muted-foreground">无内容</div>;
 }
 
-export function BotResearchBlock({ className, messages }: BotResearchBlockProps) {
-  const [activeTab, setActiveTab] = useState<keyof typeof RESEARCH_TABS>("knowledge");
+export function BotResearchBlock({ 
+  className, 
+  messages
+}: BotResearchBlockProps) {
   const [copied, setCopied] = useState(false);
+  const { activeTab, setActiveTab } = useUIStore();
   
   // Extract tool calls from messages for research tabs
   const allToolCalls = useMemo(() => {
@@ -315,18 +319,6 @@ export function BotResearchBlock({ className, messages }: BotResearchBlockProps)
     return acc;
   }, {} as Record<keyof typeof RESEARCH_TABS, typeof allToolCalls>);
 
-  // Auto-switch to latest tab when new data arrives
-  useEffect(() => {
-    if (allToolCalls.length > 0) {
-      const latestToolCall = allToolCalls[allToolCalls.length - 1];
-      if (latestToolCall) {
-        const tabType = getResearchTab(latestToolCall.label);
-        if (tabType) {
-          setActiveTab(tabType);
-        }
-      }
-    }
-  }, [allToolCalls]);
 
   // Copy function for research data
   const handleCopy = useCallback(() => {

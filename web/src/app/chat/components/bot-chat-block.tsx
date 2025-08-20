@@ -8,13 +8,14 @@ import { Button } from "~/components/ui/button";
 import { Markdown } from "~/components/deer-flow/markdown";
 import { ScrollContainer } from "~/components/deer-flow/scroll-container";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible";
-import { ChevronRight, Brain, Search, BarChart3, CheckCircle, ChevronDown, Lightbulb, Settings, Target, Code } from "lucide-react";
+import { ChevronRight, Brain, Search, BarChart3, CheckCircle, ChevronDown, Lightbulb, Settings, Target, Code, Wrench, Database } from "lucide-react";
 import { LoadingAnimation } from "~/components/deer-flow/loading-animation";
 import { RollingText } from "~/components/deer-flow/rolling-text";
 import { motion } from "framer-motion";
 import { InputBox } from "./input-box";
 import { ConversationStarter } from "./conversation-starter";
-import { useStore, sendMessage, type Message, type Reasoning } from '~/core/store/agent-store';
+import { useStore, sendMessage, type Message, type Reasoning, type ToolCall } from '~/core/store/agent-store';
+import { useUIStore } from '~/core/store/ui-store';
 import { nanoid } from 'nanoid';
 
 // Import ThoughtBlock from message-list-view
@@ -49,29 +50,25 @@ function ThoughtBlock({
           <Button
             variant="ghost"
             className={cn(
-              "h-auto w-full justify-start rounded-xl border px-6 py-4 text-left transition-all duration-200",
-              "hover:bg-accent hover:text-accent-foreground",
+              "h-auto w-full justify-start rounded-xl px-6 py-4 text-left transition-all duration-200",
+              "hover:bg-accent/80 cursor-pointer",
               reasoning.isStreaming
-                ? "border-primary/20 bg-primary/5 shadow-sm"
-                : "border-border bg-card",
+                ? "bg-primary/5"
+                : "bg-accent/40",
             )}
           >
             <div className="flex w-full items-center gap-3">
               {React.createElement(reasoningConfig.icon, {
                 size: 18,
                 className: cn(
-                  "shrink-0 transition-colors duration-200",
-                  reasoning.isStreaming 
-                    ? `${reasoningConfig.color} animate-pulse` 
-                    : "text-muted-foreground",
+                  "shrink-0 text-foreground/70",
+                  reasoning.isStreaming && "animate-pulse"
                 )
               })}
               <span
                 className={cn(
-                  "leading-none font-semibold transition-colors duration-200",
-                  reasoning.isStreaming 
-                    ? `${reasoningConfig.color} animate-pulse` 
-                    : "text-foreground",
+                  "leading-none font-semibold text-foreground",
+                  reasoning.isStreaming && "animate-pulse"
                 )}
               >
                 {reasoningConfig.text}
@@ -94,12 +91,12 @@ function ThoughtBlock({
         <CollapsibleContent className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-up-2 data-[state=open]:slide-down-2 mt-3">
           <Card
             className={cn(
-              "transition-all duration-200",
-              reasoning.isStreaming ? "border-primary/20 bg-primary/5" : "border-border",
+              "transition-all duration-200 border-0",
+              reasoning.isStreaming ? "bg-primary/5" : "bg-accent/20",
             )}
           >
             <CardContent>
-              <div className="flex h-40 w-full overflow-y-auto">
+              <div className="flex h-30 w-full overflow-y-auto">
                 <ScrollContainer
                   className={cn(
                     "flex h-full w-full flex-col overflow-hidden",
@@ -110,7 +107,7 @@ function ThoughtBlock({
                 >
                   <Markdown
                     className={cn(
-                      "prose dark:prose-invert max-w-none transition-colors duration-200",
+                      "text-sm prose dark:prose-invert max-w-none transition-colors duration-200",
                       reasoning.isStreaming ? "prose-primary" : "opacity-80",
                     )}
                     animated={reasoning.isStreaming}
@@ -129,6 +126,7 @@ function ThoughtBlock({
 
 interface BotChatBlockProps {
   className?: string;
+  onTabSwitch?: (tabId: string) => void;
 }
 
 // Agent configuration with icons and colors
@@ -171,32 +169,115 @@ const getReasoningConfig = (label: string) => {
     case 'troubleshooting_agent_model_thinking':
       return {
         icon: Settings,
-        text: "分析问题",
-        color: "text-blue-500"
+        text: "分析问题"
       };
     case 'troubleshooting_agent_refined_apis':
       return {
         icon: Target,
-        text: "API筛选",
-        color: "text-green-500"
+        text: "API筛选"
       };
     case 'troubleshooting_agent_code_thinking':
       return {
         icon: Code,
-        text: "代码分析",
-        color: "text-purple-500"
+        text: "代码分析"
       };
     default:
       return {
         icon: Lightbulb,
-        text: "深度思考",
-        color: "text-orange-500"
+        text: "深度思考"
       };
   }
 };
 
+// Tool call configuration with user-friendly icons and text
+const getToolCallConfig = (label: string) => {
+  switch (label) {
+    case 'planning_agent_knowledge':
+      return {
+        icon: Database,
+        text: "知识检索",
+        tabId: "knowledge"
+      };
+    case 'troubleshooting_agent_mock_status_done':
+      return {
+        icon: Wrench,
+        text: "状态检查",
+        tabId: "troubleshooting"
+      };
+    default:
+      return {
+        icon: Wrench,
+        text: "工具调用",
+        tabId: "tools"
+      };
+  }
+};
+
+// Tool Call Block component
+function ToolCallBlock({
+  className,
+  toolCall,
+  onTabSwitch,
+}: {
+  className?: string;
+  toolCall: ToolCall;
+  onTabSwitch?: (tabId: string) => void;
+}) {
+  const toolCallConfig = getToolCallConfig(toolCall.label);
+
+  const handleClick = () => {
+    if (onTabSwitch && toolCallConfig.tabId) {
+      onTabSwitch(toolCallConfig.tabId);
+    }
+  };
+
+  if (!toolCall.content || toolCall.content.trim() === "") {
+    return null;
+  }
+
+  return (
+    <div className={cn("mb-3 w-full", className)}>
+      <Button
+        variant="ghost"
+        onClick={handleClick}
+        className={cn(
+          "h-auto w-full justify-start rounded-xl border px-6 py-4 text-left transition-all duration-200",
+          "hover:bg-accent hover:text-accent-foreground cursor-pointer",
+          "border-border bg-card hover:border-primary/20"
+        )}
+      >
+        <div className="flex w-full items-center gap-3">
+          {React.createElement(toolCallConfig.icon, {
+            size: 18,
+            className: "shrink-0 text-foreground/70"
+          })}
+          <span className="leading-none font-medium text-foreground">
+            {toolCallConfig.text}
+          </span>
+          <div className="flex-grow" />
+          <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">
+            {toolCall.content.length > 50 
+              ? `${toolCall.content.slice(0, 50)}...` 
+              : toolCall.content}
+          </div>
+          <ChevronRight
+            size={16}
+            className="text-muted-foreground transition-transform duration-200"
+          />
+        </div>
+      </Button>
+    </div>
+  );
+}
+
 // Message List Item component
-function MessageListItem({ message }: { message: Message }) {
+function MessageListItem({ 
+  message, 
+  onTabSwitch 
+}: { 
+  message: Message;
+  onTabSwitch?: (tabId: string) => void;
+}) {
   const agentConfig = getAgentConfig(message.agentType);
 
   return (
@@ -226,7 +307,7 @@ function MessageListItem({ message }: { message: Message }) {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between group">
                   <div className="flex items-center gap-3">
-                    {React.createElement(agentConfig.icon, { size: 20, title: agentConfig.name })}
+                    {React.createElement(agentConfig.icon, { size: 20 })}
                     <CardTitle className="text-base font-semibold" title={agentConfig.name}>
                       {agentConfig.name}
                     </CardTitle>
@@ -246,6 +327,19 @@ function MessageListItem({ message }: { message: Message }) {
                   />
                 ))}
 
+                {/* Tool calls section */}
+                {message.toolCalls && message.toolCalls.length > 0 && (
+                  <div className="mb-3">
+                    {message.toolCalls.map((toolCall, index) => (
+                      <ToolCallBlock
+                        key={index}
+                        toolCall={toolCall}
+                        onTabSwitch={onTabSwitch}
+                      />
+                    ))}
+                  </div>
+                )}
+
                 <Markdown>{message.content}</Markdown>
               </CardContent>
             </Card>
@@ -256,15 +350,16 @@ function MessageListItem({ message }: { message: Message }) {
   );
 }
 
-export function BotChatBlock({ className }: BotChatBlockProps) {
+export function BotChatBlock({ className, onTabSwitch }: BotChatBlockProps) {
   const { messageIds, messages, isResponding, appendMessage, setResponding } = useStore();
+  const { isReplayMode } = useUIStore();
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Convert agent store messages to array format for display
   const messageList = messageIds.map(id => messages.get(id)!).filter(Boolean);
   const messageCount = messageList.length;
 
-  const handleSendMessage = useCallback(async (content: string, options?: { isReplayMode?: boolean }) => {
+  const handleSendMessage = useCallback(async (content: string) => {
     if (!content.trim() || isResponding) return;
 
     const abortController = new AbortController();
@@ -273,7 +368,7 @@ export function BotChatBlock({ className }: BotChatBlockProps) {
     try {
       await sendMessage(content, { 
         abortSignal: abortController.signal,
-        isReplayMode: options?.isReplayMode 
+        isReplayMode: isReplayMode 
       });
     } catch (error) {
       if (error instanceof Error && error.name !== 'AbortError') {
@@ -292,7 +387,7 @@ export function BotChatBlock({ className }: BotChatBlockProps) {
     } finally {
       abortControllerRef.current = null;
     }
-  }, [isResponding, appendMessage]);
+  }, [isResponding, appendMessage, isReplayMode]);
 
   const handleCancel = useCallback(() => {
     abortControllerRef.current?.abort();
@@ -312,6 +407,7 @@ export function BotChatBlock({ className }: BotChatBlockProps) {
               <MessageListItem
                 key={message.id}
                 message={message}
+                onTabSwitch={onTabSwitch}
               />
             ))}
 
@@ -334,12 +430,13 @@ export function BotChatBlock({ className }: BotChatBlockProps) {
         {!isResponding && messageCount === 0 && (
           <ConversationStarter
             className="absolute top-[-218px] left-0"
+            onSend={handleSendMessage}
           />
         )}
         <InputBox
           className="h-full w-full"
           responding={isResponding}
-          onSend={(message, options) => handleSendMessage(message, { isReplayMode: options?.isReplayMode })}
+          onSend={handleSendMessage}
           onCancel={handleCancel}
         />
       </div>
