@@ -1,0 +1,13 @@
+data: {"label":"planning_agent_knowledge","content":{"title":"ETH_LOS告警相关知识","sections":[{"subtitle":"告警定义","content":"ETH_LOS（Ethernet Loss of Signal）表示以太网信号丢失告警，通常发生在物理层。"},{"subtitle":"常见原因","content":["光纤断裂或弯曲半径过小","光模块故障或不匹配","端口配置错误","设备电源异常"]},{"subtitle":"处理建议","content":"1. 检查光纤连接\n2. 确认光模块状态\n3. 验证端口配置\n4. 查看设备日志"}]},"return_type":"normal"}
+
+data: {"label":"planning_agent_troubleshooting_text","content":"根据您提供的信息，PTN830设备1/0/1端口产生ETH_LOS告警，这是一个物理层的信号丢失问题。\n\n分析过程：\n1. 告警类型识别：ETH_LOS属于物理层告警，表明端口无法检测到有效的以太网信号。\n\n2. 可能的故障点：\n   - 物理连接问题（70%概率）：光纤断裂、接头污染、弯曲半径过小\n   - 光模块问题（20%概率）：模块故障、不匹配、松动\n   - 设备端口问题（10%概率）：端口故障、配置错误\n\n3. 建议的排查步骤：\n   步骤1：检查物理连接\n   - 确认光纤是否正确插入\n   - 检查光纤是否有明显损伤\n   - 清洁光纤接头\n   \n   步骤2：验证光模块\n   - 重新插拔光模块\n   - 检查光功率是否在正常范围\n   - 确认光模块型号匹配性\n   \n   步骤3：端口配置检查\n   - 验证端口使能状态\n   - 检查速率双工配置\n   - 确认VLAN等配置\n\n4. 预期结果：\n   通过以上步骤，90%的ETH_LOS告警可以得到解决。如问题依然存在，可能需要更换光模块或联系厂商支持。","return_type":"normal"}
+
+data: {"label":"troubleshooting_agent_model_thinking","content":"begin","return_type":"stream"}
+
+data: {"label":"troubleshooting_agent_model_thinking","content":"正在分析告警类型ETH_LOS...","return_type":"stream"}
+
+data: {"label":"troubleshooting_agent_model_thinking","content":"识别到这是一个物理层告警，需要调用物理层相关的诊断API...","return_type":"stream"}
+
+data: {"label":"troubleshooting_agent_model_thinking","content":"匹配相关API列表：get_port_status, get_optical_power, get_port_statistics...","return_type":"stream"}
+
+data: {"label":"troubleshooting_agent_model_thinking","content":"complete","return_type":"stream"}

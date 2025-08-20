@@ -1,6 +1,8 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const app = express();
-const PORT = 8000;
+const PORT = 3001;
 
 // 中间件配置
 app.use(express.json());
@@ -218,9 +220,11 @@ async function streamResponse(res, label, contentGenerator, isStream = false) {
     
     for (const content of contentArray) {
         await new Promise(resolve => setTimeout(resolve, 300)); // 模拟延迟
+        // 去除内容结尾的换行符
+        const cleanContent = typeof content === 'string' ? content.replace(/\n+$/, '') : content;
         res.write(`data: ${JSON.stringify({
             label,
-            content,
+            content: cleanContent,
             return_type: "stream"
         })}\n\n`);
     }
@@ -233,6 +237,96 @@ async function streamResponse(res, label, contentGenerator, isStream = false) {
         return_type: "stream"
     })}\n\n`);
 }
+
+// 回放服务器接口 - 使用固定的replay.txt文件
+app.get('/api/replay', async (req, res) => {
+    const filename = 'replay.txt'; // 固定文件名
+    
+    console.log('开始回放固定文件:', filename);
+
+    // 设置SSE响应头
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no'
+    });
+
+    try {
+        // 构建文件路径 - 这里假设replay文件放在server目录下的replay文件夹
+        const replayDir = path.join(__dirname, 'replay');
+        const filePath = path.join(replayDir, filename);
+
+        // 检查文件是否存在
+        if (!fs.existsSync(filePath)) {
+            res.write(`data: ${JSON.stringify({
+                error: `文件 ${filename} 不存在`
+            })}\n\n`);
+            res.end();
+            return;
+        }
+
+        // 读取文件内容
+        const fileContent = fs.readFileSync(filePath, 'utf8');
+        const lines = fileContent.split('\n').filter(line => line.trim().startsWith('data:'));
+
+        console.log(`读取到 ${lines.length} 行SSE数据`);
+
+        // 逐行发送数据，模拟流式传输
+        for (const line of lines) {
+            // 提取data:后面的内容
+            const dataContent = line.substring(5).trim(); // 去掉"data:"前缀
+            
+            if (dataContent) {
+                // 直接发送原始数据行
+                res.write(`data: ${dataContent}\n\n`);
+                
+                // 模拟延迟，让流式效果更真实
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+        }
+
+        // 发送结束信号
+        res.write('data: [DONE]\n\n');
+        res.end();
+
+    } catch (error) {
+        console.error('回放文件错误:', error);
+        res.write(`data: ${JSON.stringify({
+            error: error.message
+        })}\n\n`);
+        res.end();
+    }
+});
+
+// 获取可用的replay文件列表
+app.get('/api/replay/files', (req, res) => {
+    try {
+        const replayDir = path.join(__dirname, 'replay');
+        
+        // 如果replay目录不存在，创建它
+        if (!fs.existsSync(replayDir)) {
+            fs.mkdirSync(replayDir, { recursive: true });
+        }
+
+        const files = fs.readdirSync(replayDir)
+            .filter(file => file.endsWith('.txt'))
+            .map(file => {
+                const filePath = path.join(replayDir, file);
+                const stats = fs.statSync(filePath);
+                return {
+                    name: file,
+                    size: stats.size,
+                    modified: stats.mtime.toISOString()
+                };
+            });
+
+        res.json({ files });
+    } catch (error) {
+        console.error('获取文件列表错误:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
 
 // 聊天流式接口
 app.post('/api/chat/stream', async (req, res) => {
@@ -356,6 +450,11 @@ app.get('/api/config', (req, res) => {
     });
 });
 
+// 提供测试页面
+app.get('/test-replay', (req, res) => {
+    res.sendFile(path.join(__dirname, 'test-replay.html'));
+});
+
 // 健康检查接口
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -365,5 +464,8 @@ app.get('/health', (req, res) => {
 app.listen(PORT, () => {
     console.log(`流式Mock服务器已启动: http://localhost:${PORT}`);
     console.log(`测试接口: POST http://localhost:${PORT}/freestyle`);
+    console.log(`回放接口: GET http://localhost:${PORT}/api/replay`);
+    console.log(`文件列表: GET http://localhost:${PORT}/api/replay/files`);
+    console.log(`回放测试页面: http://localhost:${PORT}/test-replay`);
     console.log(`健康检查: GET http://localhost:${PORT}/health`);
 });

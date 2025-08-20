@@ -46,7 +46,7 @@ export async function* chatStream(
   
   try{
     // Use the new chatbot API endpoint
-    const stream = fetchStream("http://localhost:3001/freestyle", {
+    const stream = fetchStream(`${env.NEXT_PUBLIC_CHAT_API_URL}/freestyle`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

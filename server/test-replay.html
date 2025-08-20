@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSE Replay Server 测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            margin-bottom: 20px;
+        }
+        #output {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 15px;
+            height: 400px;
+            overflow-y: scroll;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin-right: 10px;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+        .file-list {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>SSE Replay Server 测试</h1>
+    
+    <div class="container">
+        <h3>可用的回放文件:</h3>
+        <div id="fileList" class="file-list">加载中...</div>
+        <button onclick="loadFileList()">刷新文件列表</button>
+    </div>
+
+    <div class="container">
+        <h3>测试回放功能:</h3>
+        <button onclick="startReplay()" id="replayBtn">开始回放 (replay.txt)</button>
+        <button onclick="clearOutput()">清空输出</button>
+    </div>
+
+    <div class="container">
+        <h3>SSE输出:</h3>
+        <div id="output"></div>
+    </div>
+
+    <script>
+        const output = document.getElementById('output');
+        const replayBtn = document.getElementById('replayBtn');
+        
+        // 加载文件列表
+        async function loadFileList() {
+            try {
+                const response = await fetch('http://localhost:3001/api/replay/files');
+                const data = await response.json();
+                
+                const fileListDiv = document.getElementById('fileList');
+                if (data.files && data.files.length > 0) {
+                    fileListDiv.innerHTML = data.files.map(file => 
+                        `<div>📄 <strong>${file.name}</strong> (${file.size} bytes, 修改时间: ${new Date(file.modified).toLocaleString()})</div>`
+                    ).join('');
+                } else {
+                    fileListDiv.innerHTML = '没有找到replay文件';
+                }
+            } catch (error) {
+                document.getElementById('fileList').innerHTML = '加载文件列表失败: ' + error.message;
+            }
+        }
+
+        // 开始回放
+        async function startReplay() {
+            replayBtn.disabled = true;
+            replayBtn.textContent = '回放中...';
+            output.textContent = '';
+
+            try {
+                const response = await fetch('http://localhost:3001/api/replay', {
+                    method: 'GET'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.substring(6);
+                            if (data === '[DONE]') {
+                                output.textContent += '\n✅ 回放完成\n';
+                                break;
+                            }
+                            
+                            try {
+                                const parsed = JSON.parse(data);
+                                output.textContent += `🔥 [${new Date().toLocaleTimeString()}] ${JSON.stringify(parsed, null, 2)}\n\n`;
+                            } catch (e) {
+                                output.textContent += `📝 [${new Date().toLocaleTimeString()}] ${data}\n\n`;
+                            }
+                            
+                            output.scrollTop = output.scrollHeight;
+                        }
+                    }
+                }
+            } catch (error) {
+                output.textContent += `❌ 错误: ${error.message}\n`;
+            } finally {
+                replayBtn.disabled = false;
+                replayBtn.textContent = '开始回放';
+            }
+        }
+
+        function clearOutput() {
+            output.textContent = '';
+        }
+
+        // 页面加载时获取文件列表
+        loadFileList();
+    </script>
+</body>
+</html>
