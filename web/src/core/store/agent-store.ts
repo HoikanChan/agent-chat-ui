@@ -3,6 +3,7 @@
 
 import { nanoid } from "nanoid";
 import { create } from "zustand";
+import { env } from "~/env";
 
 export interface ToolCall {
   content: string;
@@ -135,7 +136,7 @@ export async function sendMessage(content: string, options: { abortSignal?: Abor
   let currentMessageId: string | undefined;
 
   try {
-    const response = await fetch("http://localhost:3001/freestyle", {
+    const response = await fetch(`${env.NEXT_PUBLIC_CHAT_API_URL}/freestyle`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
