@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUp, X } from "lucide-react";
+import { ArrowUp, X, Play } from "lucide-react";
 import { useTranslations } from "~/lib/i18n-react";
 import { useCallback, useRef, useState } from "react";
 
@@ -35,6 +35,7 @@ export function InputBox({
     options?: {
       interruptFeedback?: string;
       resources?: Array<Resource>;
+      isReplayMode?: boolean;
     },
   ) => void;
   onCancel?: () => void;
@@ -52,6 +53,9 @@ export function InputBox({
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isEnhanceAnimating, setIsEnhanceAnimating] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState("");
+  
+  // Replay mode state
+  const [isReplayMode, setIsReplayMode] = useState(false);
 
   const handleSendMessage = useCallback(
     (message: string, resources: Array<Resource>) => {
@@ -65,6 +69,7 @@ export function InputBox({
           onSend(message, {
             interruptFeedback: feedback?.option.value,
             resources,
+            isReplayMode,
           });
           onRemoveFeedback?.();
           // Clear enhancement animation after sending
@@ -72,7 +77,7 @@ export function InputBox({
         }
       }
     },
-    [responding, onCancel, onSend, feedback, onRemoveFeedback],
+    [responding, onCancel, onSend, feedback, onRemoveFeedback, isReplayMode],
   );
 
   const handleEnhancePrompt = useCallback(async () => {
@@ -200,6 +205,21 @@ export function InputBox({
       </div>
       <div className="flex items-center px-4 py-2">
         <div className="flex grow gap-2">
+          <Tooltip title={isReplayMode ? "回放模式：使用预录制数据" : "点击切换为回放模式"}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-8 w-8 rounded-full transition-colors",
+                isReplayMode 
+                  ? "bg-foreground text-background hover:bg-foreground/90" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-transparent"
+              )}
+              onClick={() => setIsReplayMode(!isReplayMode)}
+            >
+              <Play className="h-3.5 w-3.5" />
+            </Button>
+          </Tooltip>
         </div>
         <div className="flex shrink-0 items-center gap-2">
 

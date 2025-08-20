@@ -113,7 +113,7 @@ export function setResponding(responding: boolean) {
 }
 
 // 独立的 sendMessage 函数，复用 chatStream 工具
-export async function sendMessage(content: string, options: { abortSignal?: AbortSignal } = {}) {
+export async function sendMessage(content: string, options: { abortSignal?: AbortSignal; isReplayMode?: boolean } = {}) {
   const store = useStore.getState();
   const threadId = nanoid();
   
@@ -136,16 +136,26 @@ export async function sendMessage(content: string, options: { abortSignal?: Abor
   let currentMessageId: string | undefined;
 
   try {
-    const response = await fetch(`${env.NEXT_PUBLIC_CHAT_API_URL}/freestyle`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: content,
-      }),
-      signal: options.abortSignal,
-    });
+    // 根据模式选择不同的API端点
+    const apiEndpoint = options.isReplayMode 
+      ? `${env.NEXT_PUBLIC_CHAT_API_URL}/api/replay`
+      : `${env.NEXT_PUBLIC_CHAT_API_URL}/freestyle`;
+    
+    const response = options.isReplayMode 
+      ? await fetch(apiEndpoint, {
+          method: "GET",
+          signal: options.abortSignal,
+        })
+      : await fetch(apiEndpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query: content,
+          }),
+          signal: options.abortSignal,
+        });
 
     if (!response.body) {
       throw new Error("No response body");
@@ -222,7 +232,7 @@ export async function sendMessage(content: string, options: { abortSignal?: Abor
                 if (!currentMessage) return;
                 if (!currentMessage.content) currentMessage.content = '';
                 if (!currentMessage.contentChunks) currentMessage.contentChunks = [];
-                currentMessage.content += contentStr + '\n';
+                currentMessage.content += contentStr;
                 currentMessage.contentChunks.push(contentStr);
               };
 
@@ -265,7 +275,7 @@ export async function sendMessage(content: string, options: { abortSignal?: Abor
                 // 添加正常内容
                 if (existingReasoning) {
                   // 合并到现有的reasoning对象中
-                  existingReasoning.content += contentStr + '\n';
+                  existingReasoning.content += contentStr;
                   if (existingReasoning.isStreaming === undefined) {
                     existingReasoning.isStreaming = true; // 设置为正在流式传输
                   }
@@ -273,7 +283,7 @@ export async function sendMessage(content: string, options: { abortSignal?: Abor
                   // 创建新的reasoning对象
                   const reasoning: Reasoning = {
                     label: label,
-                    content: contentStr + '\n',
+                    content: contentStr,
                     isStreaming: true, // 新创建的reasoning设置为正在流式传输
                   };
                   currentMessage.reasoningContent.push(reasoning);

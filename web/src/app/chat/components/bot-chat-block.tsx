@@ -264,14 +264,17 @@ export function BotChatBlock({ className }: BotChatBlockProps) {
   const messageList = messageIds.map(id => messages.get(id)!).filter(Boolean);
   const messageCount = messageList.length;
 
-  const handleSendMessage = useCallback(async (content: string) => {
+  const handleSendMessage = useCallback(async (content: string, options?: { isReplayMode?: boolean }) => {
     if (!content.trim() || isResponding) return;
 
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
 
     try {
-      await sendMessage(content, { abortSignal: abortController.signal });
+      await sendMessage(content, { 
+        abortSignal: abortController.signal,
+        isReplayMode: options?.isReplayMode 
+      });
     } catch (error) {
       if (error instanceof Error && error.name !== 'AbortError') {
         console.error("Chat error:", error);
@@ -336,7 +339,7 @@ export function BotChatBlock({ className }: BotChatBlockProps) {
         <InputBox
           className="h-full w-full"
           responding={isResponding}
-          onSend={handleSendMessage}
+          onSend={(message, options) => handleSendMessage(message, { isReplayMode: options?.isReplayMode })}
           onCancel={handleCancel}
         />
       </div>
