@@ -61,13 +61,17 @@ function ThoughtBlock({
                 size: 18,
                 className: cn(
                   "shrink-0 transition-colors duration-200",
-                  reasoning.isStreaming ? reasoningConfig.color : "text-muted-foreground",
+                  reasoning.isStreaming 
+                    ? `${reasoningConfig.color} animate-pulse` 
+                    : "text-muted-foreground",
                 )
               })}
               <span
                 className={cn(
                   "leading-none font-semibold transition-colors duration-200",
-                  reasoning.isStreaming ? reasoningConfig.color : "text-foreground",
+                  reasoning.isStreaming 
+                    ? `${reasoningConfig.color} animate-pulse` 
+                    : "text-foreground",
                 )}
               >
                 {reasoningConfig.text}
