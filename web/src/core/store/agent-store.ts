@@ -10,7 +10,7 @@ export interface ToolCall {
   label: string;
 }
 
-export interface Reasoning{
+export interface Reasoning {
   content: string;
   label: string;
   isStreaming?: boolean;
@@ -21,19 +21,19 @@ export interface Message {
   threadId: string;
   agentType?: 'planning' | 'troubleshooting' | 'summarizing';
   role: 'user' | 'assistant'; // 支持用户和助手角色
-  
+
   // 消息内容 (content) - for planning and summarizing agents
   content?: string;
   contentChunks?: string[];
-  
+
   // 推理内容数组 (reasoning) - for troubleshooting agent, supports multiple reasoning processes
   reasoningContent?: Reasoning[];
   // 记录当前推理内容的chunk
   reasoningContentChunks?: string[];
-  
+
   // 工具调用 (tool calls)
   toolCalls?: ToolCall[];
-  
+
   isStreaming?: boolean;
   finishReason?: string;
   createdAt: Date;
@@ -64,9 +64,9 @@ export const useStore = create<{
 
   updateMessage(message: Message) {
     set((state) => ({
-      messages: new Map(state.messages).set(message.id, { 
-        ...message, 
-        updatedAt: new Date() 
+      messages: new Map(state.messages).set(message.id, {
+        ...message,
+        updatedAt: new Date()
       }),
     }));
   },
@@ -74,9 +74,9 @@ export const useStore = create<{
   updateMessages(messages: Message[]) {
     set((state) => {
       const newMessages = new Map(state.messages);
-      messages.forEach((m) => newMessages.set(m.id, { 
-        ...m, 
-        updatedAt: new Date() 
+      messages.forEach((m) => newMessages.set(m.id, {
+        ...m,
+        updatedAt: new Date()
       }));
       return { messages: newMessages };
     });
@@ -87,7 +87,7 @@ export const useStore = create<{
       const newMessages = new Map(state.messages);
       newMessages.delete(id);
       const newMessageIds = state.messageIds.filter(msgId => msgId !== id);
-      
+
       return {
         messageIds: newMessageIds,
         messages: newMessages,
@@ -116,7 +116,7 @@ export function setResponding(responding: boolean) {
 export async function sendMessage(content: string, options: { abortSignal?: AbortSignal; isReplayMode?: boolean } = {}) {
   const store = useStore.getState();
   const threadId = nanoid();
-  
+
   // Add user message first
   const userMessage: Message = {
     id: nanoid(),
@@ -137,25 +137,25 @@ export async function sendMessage(content: string, options: { abortSignal?: Abor
 
   try {
     // 根据模式选择不同的API端点
-    const apiEndpoint = options.isReplayMode 
+    const apiEndpoint = options.isReplayMode
       ? `${env.NEXT_PUBLIC_CHAT_API_URL}/api/replay`
       : `${env.NEXT_PUBLIC_CHAT_API_URL}/freestyle`;
-    
-    const response = options.isReplayMode 
+
+    const response = options.isReplayMode
       ? await fetch(apiEndpoint, {
-          method: "GET",
-          signal: options.abortSignal,
-        })
+        method: "GET",
+        signal: options.abortSignal,
+      })
       : await fetch(apiEndpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            query: content,
-          }),
-          signal: options.abortSignal,
-        });
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: content,
+        }),
+        signal: options.abortSignal,
+      });
 
     if (!response.body) {
       throw new Error("No response body");
@@ -192,15 +192,22 @@ export async function sendMessage(content: string, options: { abortSignal?: Abor
               const jsonData = JSON.parse(line.slice(6)); // 移除 "data: " 前缀
               const { label, content, return_type } = jsonData;
 
-              console.log('收到数据:', { label, return_type, contentType: typeof content });
-
               // 根据 label 确定 agent 类型
               if (label.includes('planning_agent')) {
                 currentAgent = 'planning';
-              } else if (label.includes('troubleshooting_agent')) {
+              } else if (
+                [
+                  'troubleshooting_agent_model_thinking',
+                  'troubleshooting_agent_refined_apis',
+                  'troubleshooting_agent_code_thinking',
+                  'troubleshooting_agent_mock_status_done'
+                ].includes(label)
+              ) {
                 currentAgent = 'troubleshooting';
               } else if (label.includes('summarizing') || label.includes('final_summarizer')) {
                 currentAgent = 'summarizing';
+              } else {
+                continue
               }
 
               // 创建新消息或更新现有消息 - 所有agent响应都是assistant角色
@@ -241,14 +248,14 @@ export async function sendMessage(content: string, options: { abortSignal?: Abor
                 if (!currentMessage) return;
                 if (!currentMessage.reasoningContent) currentMessage.reasoningContent = [];
                 if (!currentMessage.reasoningContentChunks) currentMessage.reasoningContentChunks = [];
-                
+
                 // 检测流式传输结束事件
                 const isEndEvent = contentStr.includes('complete') || contentStr.trim() === 'complete';
                 const isBeginEvent = contentStr.includes('[begin]') || contentStr.trim() === 'begin';
-                
+
                 // 查找是否已存在相同label的reasoning
                 const existingReasoning = currentMessage.reasoningContent.find(r => r.label === label);
-                
+
                 if (isEndEvent) {
                   // 如果是结束事件，将对应reasoning的streaming状态设置为false
                   if (existingReasoning) {
@@ -256,7 +263,7 @@ export async function sendMessage(content: string, options: { abortSignal?: Abor
                   }
                   return; // 不添加end事件到内容中
                 }
-                
+
                 if (isBeginEvent) {
                   // 如果是开始事件，确保reasoning存在并设置为streaming
                   if (existingReasoning) {
@@ -271,7 +278,7 @@ export async function sendMessage(content: string, options: { abortSignal?: Abor
                   }
                   return; // 不添加begin事件到内容中
                 }
-                
+
                 // 添加正常内容
                 if (existingReasoning) {
                   // 合并到现有的reasoning对象中
@@ -344,8 +351,8 @@ export async function sendMessage(content: string, options: { abortSignal?: Abor
 
               if (currentMessage) {
                 store.updateMessage(currentMessage);
-                console.log('更新消息:', { 
-                  agent: currentAgent, 
+                console.log('更新消息:', {
+                  agent: currentAgent,
                   role: currentMessage.role,
                   contentLength: currentMessage.content?.length || 0,
                   reasoningLength: currentMessage.reasoningContent?.length || 0,
