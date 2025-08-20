@@ -401,6 +401,7 @@ export function BotChatBlock({ className, onTabSwitch }: BotChatBlockProps) {
       <div className="flex-1 min-h-0 w-full">
         <ScrollContainer
           className={cn("flex flex-grow h-full w-full flex-col overflow-hidden")}
+          scrollShadowColor="var(--app-background)"
           autoScrollToBottom>
           <div className="space-y-6 py-4">
             {messageList.map((message) => (
